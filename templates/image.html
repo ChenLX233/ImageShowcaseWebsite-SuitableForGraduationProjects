@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>图片详情</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/live2d/assets/waifu.css"/>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f1f6fc 0%, #f9e8ff 100%);
+        }
+        .card {
+            box-shadow: 0 4px 18px rgba(120,90,180,0.09);
+            border-radius: 14px;
+            border: none;
+            background: #fff;
+        }
+        .card-img-top {
+            border-radius: 14px 14px 0 0;
+            max-height: 450px;
+            object-fit: contain;
+            background: #f7f7fa;
+            transition: box-shadow 0.4s cubic-bezier(.4,0,.2,1);
+            box-shadow: 0 6px 24px rgba(120,90,180,0.10);
+        }
+        .from-uploader {
+            font-size: 1.07em;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 0.35em 1.1em;
+            background: linear-gradient(90deg,#a678ff,#6ec6ff 80%);
+            color: #fff;
+            letter-spacing: 0.02em;
+            transition: background 0.6s, color 0.4s;
+            border: none;
+            box-shadow: 0 2px 10px rgba(120,90,180,0.10);
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn-animated {
+            background: linear-gradient(90deg,#a678ff,#6ec6ff 80%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            box-shadow: 0 2px 10px rgba(120,90,180,0.10);
+            transition: background 0.32s cubic-bezier(.4,0,.2,1), transform 0.18s;
+        }
+        .btn-animated:hover {
+            background: linear-gradient(90deg,#6ec6ff,#a678ff 80%);
+            transform: scale(1.07);
+        }
+        .comment-section {
+            background: #faf8ff;
+            border-radius: 11px;
+            padding: 1.6em 1.2em;
+            margin-bottom: 2em;
+            box-shadow: 0 2px 8px rgba(150,120,200,0.08);
+        }
+        .list-group-item {
+            border-radius: 7px;
+            margin-bottom: 6px;
+        }
+        .btn-outline-danger, .btn-outline-secondary, .btn-outline-info, .btn-outline-success {
+            border-radius: 6px;
+        }
+        .btn-primary, .btn-success {
+            border-radius: 6px;
+        }
+        .image-action-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        /* 评论区表单行内布局，按钮在左 */
+        .comment-form-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-direction: row;
+        }
+        .comment-form-row button {
+            order: -1;
+        }
+        /* waifu固定在右下角 */
+        .waifu {
+            position: fixed;
+            right: 20px;
+            bottom: 0px;
+            z-index: 10002;
+        }
+        @media (max-width: 575.98px) {
+            .image-action-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+            .from-uploader {
+                margin-right: 0;
+            }
+            .comment-form-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+            }
+            .comment-form-row button {
+                order: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-4 mb-5">
+    <a href="/" class="btn btn-secondary mb-3 btn-animated">返回首页</a>
+    <div class="card mb-4">
+        <img src="{{ url_for('static', filename='uploads/' + image[1]) }}" class="card-img-top" alt="图片" id="main-image">
+        <div class="card-body">
+            <div class="image-action-row">
+                <span class="from-uploader" id="uploader-color">
+                    From: <b>{{ image[6] if image[6] else '匿名' }}</b>
+                </span>
+                <button class="btn btn-sm btn-outline-info" onclick="toggleLikeUsers({{ image[0] }})">查看点赞用户</button>
+                <a href="{{ url_for('download', filename=image[1]) }}" class="btn btn-sm btn-outline-success btn-animated">下载</a>
+                {% if username and (image[2]==request.remote_addr and image[3]==request.cookies.get('device_id')) or is_admin %}
+                <button class="btn btn-sm btn-outline-danger ms-2 btn-animated" onclick="deleteImage({{ image[0] }})">删除图片</button>
+                {% endif %}
+            </div>
+            <div id="like-users-{{ image[0] }}" class="collapse"></div>
+            <p class="mt-3">上传时间：{{ image[4] }}</p>
+            <p>点赞数：{{ image[5] }}</p>
+        </div>
+    </div>
+    <div class="comment-section">
+        <h4 class="mb-3">评论区</h4>
+        {% if username %}
+        <form method="post" action="{{ url_for('comment', image_id=image[0]) }}" class="mb-2">
+            <div class="mb-3 comment-form-row">
+                <button type="submit" class="btn btn-primary btn-animated" style="white-space:nowrap;">发表评论</button>
+                <textarea id="commentInput" name="comment" class="form-control" required placeholder="留下你的评论" style="resize:vertical;"></textarea>
+            </div>
+            <input type="hidden" name="parent_id" value="">
+        </form>
+        {% else %}
+        <form method="post" action="/set_username" class="mb-2 d-flex flex-row align-items-center">
+            <input type="text" name="username" placeholder="设置您的用户名" class="form-control w-25 me-2" required>
+            <button type="submit" class="btn btn-sm btn-primary btn-animated">保存</button>
+        </form>
+        {% endif %}
+        <ul class="list-group mt-3">
+            {% for cmt in comments %}
+            {% if not cmt[7] %}
+            <li class="list-group-item">
+                <strong>{{ cmt[4] or '匿名' }}</strong> 于 {{ cmt[6] }} 评论：<br>
+                <span>{{ cmt[5]|safe }}</span>
+                <div class="mt-2 d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="showReply({{cmt[0]}})">回复</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="likeComment({{cmt[0]}})">点赞 (<span id="comment-like-{{cmt[0]}}">{{cmt[8]}}</span>)</button>
+                    {% if is_admin or (username and (cmt[4]==username or cmt[2]==request.remote_addr and cmt[3]==request.cookies.get('device_id'))) %}
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteComment({{cmt[0]}})">删除</button>
+                    {% endif %}
+                </div>
+                <ul class="list-group mt-2">
+                    {% for subcmt in comments if subcmt[7]==cmt[0] %}
+                    <li class="list-group-item">
+                        <strong>{{ subcmt[4] or '匿名' }}</strong> 于 {{ subcmt[6] }} 回复：<br>
+                        <span>{{ subcmt[5]|safe }}</span>
+                        <div class="mt-2 d-flex flex-wrap gap-2">
+                            <button class="btn btn-sm btn-outline-danger" onclick="likeComment({{subcmt[0]}})">点赞 (<span id="comment-like-{{subcmt[0]}}">{{subcmt[8]}}</span>)</button>
+                            {% if is_admin or (username and (subcmt[4]==username or subcmt[2]==request.remote_addr and subcmt[3]==request.cookies.get('device_id'))) %}
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteComment({{subcmt[0]}})">删除</button>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <form method="post" action="{{ url_for('comment', image_id=image[0]) }}" id="reply-form-{{cmt[0]}}" style="display:none;" class="mt-2">
+                    <div class="mb-2">
+                        <textarea name="comment" class="form-control" required placeholder="回复内容"></textarea>
+                    </div>
+                    <input type="hidden" name="parent_id" value="{{cmt[0]}}">
+                    <button type="submit" class="btn btn-sm btn-success btn-animated">发表回复</button>
+                </form>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+<div class="waifu">
+    <div class="waifu-tips"></div>
+    <canvas id="live2d" class="live2d" width="280" height="250"></canvas>
+    <div class="waifu-tool">
+        <span class="fui-home"></span>
+        <span class="fui-chat"></span>
+        <span class="fui-eye"></span>
+        <span class="fui-user"></span>
+        <span class="fui-photo"></span>
+        <span class="fui-info-circle"></span>
+        <span class="fui-cross"></span>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/colorthief@2.3.2/dist/color-thief.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-ui-dist@1.13.2/jquery-ui.min.js"></script>
+<script src="/static/live2d/assets/waifu-tips.js"></script>
+<script src="/static/live2d/assets/live2d.js"></script>
+<script>
+function showReply(comment_id) {
+    var replyForm = document.getElementById('reply-form-' + comment_id);
+    replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+}
+function likeComment(comment_id) {
+    fetch('/comment_like/' + comment_id, {method: "POST"})
+    .then(response => response.json())
+    .then(data => {
+        if(data.success){
+            let countElem = document.getElementById('comment-like-' + comment_id);
+            countElem.innerText = parseInt(countElem.innerText) + 1;
+        }
+    });
+}
+function deleteComment(comment_id) {
+    if(confirm('确定要删除该评论吗？')) {
+        fetch('/delete_comment/' + comment_id, {method: "POST"})
+        .then(response => response.json())
+        .then(data => {
+            if(data.success){
+                alert("评论已删除！");
+                location.reload();
+            } else {
+                alert(data.message || "删除失败");
+            }
+        });
+    }
+}
+function deleteImage(image_id) {
+    if(confirm('确定要删除该图片吗？')) {
+        fetch('/delete/' + image_id, {method: "POST"})
+        .then(response => response.json().then(data => ({status: response.status, body: data})))
+        .then(({status, body}) => {
+            if(body.success){
+                alert("图片已删除，页面即将刷新！");
+                setTimeout(() => { location.href = '/'; }, 1500);
+            }else{
+                alert(body.message || "删除失败");
+            }
+        });
+    }
+}
+function toggleLikeUsers(image_id) {
+    let div = document.getElementById('like-users-' + image_id);
+    if(div.classList.contains('show')) {
+        div.classList.remove('show');
+        div.innerHTML = '';
+        return;
+    }
+    fetch('/like_users/' + image_id)
+    .then(response => response.json())
+    .then(users => {
+        div.innerHTML = '<div class="card card-body">' + (users.length ? users.join('<br>') : '暂无点赞') + '</div>';
+        div.classList.add('show');
+    });
+}
+
+// 随机鲜艳渐变色生成
+function getRandomVividGradient() {
+    let h1 = Math.floor(Math.random() * 360);
+    let h2 = (h1 + Math.floor(60 + Math.random()*120)) % 360;
+    let s = 82, l = 58;
+    let c1 = `hsl(${h1},${s}%,${l}%)`;
+    let c2 = `hsl(${h2},${s}%,${l}%)`;
+    return `linear-gradient(90deg,${c1},${c2} 80%)`;
+}
+document.addEventListener("DOMContentLoaded", function() {
+    var uploaderSpan = document.getElementById("uploader-color");
+    if(uploaderSpan) {
+        uploaderSpan.style.background = "linear-gradient(90deg,#a678ff,#6ec6ff 80%)";
+        uploaderSpan.style.color = "#fff";
+    }
+    // live2d初始化
+    live2d_settings['modelId'] = 0;
+    live2d_settings['modelTexturesId'] = 0;
+    live2d_settings['waifuDraggable'] = 'true';
+    live2d_settings['canSwitchModel'] = 'true';
+    live2d_settings['canSwitchTextures'] = 'true';
+    live2d_settings['canCloseLive2d'] = 'true';
+    initModel("/static/live2d/assets/waifu-tips.json");
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>上传太快啦(≧﹏≦)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" type="text/css" href="/static/live2d/assets/waifu.css"/>
+    <style>
+        body {
+            min-height: 100vh;
+            background: linear-gradient(120deg, #a678ff 0%, #6ec6ff 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .limit-card {
+            max-width: 430px;
+            margin: 0 auto;
+            border-radius: 25px;
+            box-shadow: 0 8px 36px rgba(120,90,180,0.16), 0 2px 12px rgba(60,40,80,0.09);
+            background: rgba(255,255,255,0.98);
+            text-align: center;
+            padding: 2.4em 2em 2em 2em;
+            position: relative;
+            animation: fadeinUp .9s cubic-bezier(.4,0,.2,1);
+            z-index: 1;
+        }
+        @keyframes fadeinUp {
+            from {opacity: 0; transform: translateY(40px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+        .limit-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5em;
+        }
+        .limit-icon svg {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(120deg,#6ec6ff,#a678ff 80%);
+            border-radius: 50%;
+            box-shadow: 0 4px 18px #cddcff99;
+        }
+        .limit-title {
+            font-size: 2.1em;
+            font-weight: 800;
+            margin-bottom: 0.28em;
+            background: linear-gradient(90deg,#a678ff,#6ec6ff 80%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .limit-info {
+            font-size: 1.18em;
+            color: #4e3082;
+            margin-bottom: 1.5em;
+            font-weight: 500;
+        }
+        .limit-info .highlight {
+            color: #ff4f7b;
+            font-weight: 700;
+            background: none;
+        }
+        .limit-btn {
+            background: linear-gradient(90deg,#6ec6ff,#a678ff 80%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: 500;
+            box-shadow: 0 2px 10px rgba(120,90,180,0.10);
+            padding: 0.8em 2.2em;
+            transition: background 0.32s, transform 0.15s;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0 6px;
+            font-size: 1.05em;
+        }
+        .limit-btn:hover {
+            background: linear-gradient(90deg,#a678ff,#6ec6ff 80%);
+            transform: scale(1.08);
+        }
+        .limit-tips {
+            font-size: 0.98em;
+            color: #999;
+            margin-top: 1.3em;
+        }
+        #particles-js { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:0;}
+        .waifu { z-index: 10002; }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+    <div class="limit-card">
+        <div class="limit-title">上传频率限制</div>
+        <div class="limit-info">
+            {% if username %}<b>{{ username }}</b>，{% endif %}
+            您的上传操作过于频繁啦！<br>
+            <span class="highlight">2分钟内只允许上传一次图片哦</span>，稍后再试试吧~
+        </div>
+        <a href="/" class="limit-btn"><i class="bi bi-house-door"></i> 返回首页</a>
+        <a href="/upload" class="limit-btn"><i class="bi bi-arrow-repeat"></i> 重新上传</a>
+        <div class="limit-tips">
+            <i class="bi bi-info-circle"></i>
+            短时间内多次上传会被临时限制哦(。・ω・。)<br>
+            如有疑问请联系管理员捏~
+        </div>
+    </div>
+    <div class="waifu">
+        <div class="waifu-tips"></div>
+        <canvas id="live2d" class="live2d" width="280" height="250"></canvas>
+        <div class="waifu-tool">
+            <span class="fui-home"></span>
+            <span class="fui-chat"></span>
+            <span class="fui-eye"></span>
+            <span class="fui-user"></span>
+            <span class="fui-photo"></span>
+            <span class="fui-info-circle"></span>
+            <span class="fui-cross"></span>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js"></script>
+    <script>
+        particlesJS.load('particles-js', '/static/particles.json', function() {});
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-ui-dist@1.13.2/jquery-ui.min.js"></script>
+    <script src="/static/live2d/assets/waifu-tips.js"></script>
+    <script src="/static/live2d/assets/live2d.js"></script>
+    <script>
+        live2d_settings['modelId'] = 0;
+        live2d_settings['modelTexturesId'] = 0;
+        live2d_settings['waifuDraggable'] = 'true';
+        live2d_settings['canSwitchModel'] = 'true';
+        live2d_settings['canSwitchTextures'] = 'true';
+        live2d_settings['canCloseLive2d'] = 'true';
+        initModel("/static/live2d/assets/waifu-tips.json");
+    </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>上传图片</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/live2d/assets/waifu.css"/>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f1f6fc 0%, #f9e8ff 100%);
+        }
+        .upload-card {
+            max-width: 480px;
+            margin: 40px auto;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(120,90,180,0.12);
+            background: #fff;
+            padding: 2.5em 2em 2em 2em;
+        }
+        .form-control[type="file"] {
+            background: #f7f7fa;
+            border-radius: 9px;
+            padding: 12px;
+        }
+        .btn-animated {
+            background: linear-gradient(90deg,#a678ff,#6ec6ff 80%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            box-shadow: 0 2px 10px rgba(120,90,180,0.10);
+            transition: background 0.32s cubic-bezier(.4,0,.2,1), transform 0.18s;
+        }
+        .btn-animated:hover {
+            background: linear-gradient(90deg,#6ec6ff,#a678ff 80%);
+            transform: scale(1.07);
+        }
+        .upload-title {
+            font-size: 2.1em;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.6em;
+            background: linear-gradient(90deg,#a678ff,#6ec6ff 80%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .user-info {
+            font-size: 1.04em;
+            color: #8565c8;
+            margin-bottom: 1em;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #7a5fff;
+        }
+        .back-link {
+            border-radius: 7px;
+            margin-left: 0.5em;
+        }
+        .size-tip {
+            color: #f56c6c;
+            font-size: 0.97em;
+            margin-bottom: 0.4em;
+        }
+        .waifu { z-index:10002; }
+    </style>
+</head>
+<body>
+<div class="upload-card">
+    <div class="upload-title">上传摄影图片</div>
+    {% if username %}
+        <div class="user-info">你好, <b>{{ username }}</b>！</div>
+    {% else %}
+        <form method="post" action="/set_username" class="mb-3 d-flex flex-row align-items-center">
+            <input type="text" name="username" placeholder="设置您的用户名" class="form-control w-50 me-2" required>
+            <button type="submit" class="btn btn-sm btn-primary btn-animated">保存</button>
+        </form>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label class="form-label">选择图片文件</label>
+            <input type="file" name="file" accept="image/*" required class="form-control" id="upload-file">
+            <div class="size-tip">单张图片最大12MB，2分钟内只允许上传一次哦</div>
+        </div>
+        <button type="submit" class="btn btn-success btn-animated">上传</button>
+        <a href="/" class="btn btn-secondary back-link btn-animated">返回首页</a>
+    </form>
+</div>
+<div class="waifu">
+    <div class="waifu-tips"></div>
+    <canvas id="live2d" class="live2d" width="280" height="250"></canvas>
+    <div class="waifu-tool">
+        <span class="fui-home"></span>
+        <span class="fui-chat"></span>
+        <span class="fui-eye"></span>
+        <span class="fui-user"></span>
+        <span class="fui-photo"></span>
+        <span class="fui-info-circle"></span>
+        <span class="fui-cross"></span>
+    </div>
+</div>
+<script>
+document.getElementById('upload-file').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if (file && file.size > 12 * 1024 * 1024) {
+        alert('图片大小不能超过12MB哦');
+        e.target.value = '';
+    }
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-ui-dist@1.13.2/jquery-ui.min.js"></script>
+<script src="/static/live2d/assets/waifu-tips.js"></script>
+<script src="/static/live2d/assets/live2d.js"></script>
+<script>
+    live2d_settings['modelId'] = 0;
+    live2d_settings['modelTexturesId'] = 0;
+    live2d_settings['waifuDraggable'] = 'true';
+    live2d_settings['canSwitchModel'] = 'true';
+    live2d_settings['canSwitchTextures'] = 'true';
+    live2d_settings['canCloseLive2d'] = 'true';
+    initModel("/static/live2d/assets/waifu-tips.json");
+</script>
+</body>
+</html>

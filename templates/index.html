@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>摄影图片分享q(≧▽≦q)</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/live2d/assets/waifu.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f1f6fc 0%, #f9e8ff 100%);
+            transition: background 0.4s;
+        }
+        body.night-mode {
+            background: linear-gradient(135deg, #23243a 0%, #343050 100%);
+            color: #eaeaea;
+        }
+        #particles-js { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:-1;}
+        .modal-backdrop.show {z-index: 9998;}
+        #admin-panel {
+            position: fixed;
+            top: 12px;
+            right: 18px;
+            z-index: 9999;
+            background: rgba(255,255,255,0.97);
+            border-radius: 14px;
+            box-shadow: 0 4px 28px #0003;
+            padding: 12px 20px;
+            transition: opacity 0.4s, pointer-events 0.4s;
+            opacity: 0;
+            pointer-events: none;
+        }
+        body.night-mode #admin-panel {
+            background: rgba(44,44,60,0.97);
+            color: #eaeaea;
+        }
+        #admin-panel.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #admin-activator {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 60px;
+            height: 60px;
+            z-index: 9998;
+            cursor: pointer;
+        }
+        #random-note-popup {
+            position: fixed;
+            min-width: 180px;
+            max-width: 320px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px #0002;
+            padding: 10px 18px;
+            font-size: 1.08em;
+            font-weight: 500;
+            display: none;
+            transition: background 0.3s, color 0.3s;
+            pointer-events: none;
+        }
+        /* Masonry瀑布流布局 */
+        .masonry {
+            column-count: 3;
+            column-gap: 1.2rem;
+        }
+        @media (max-width: 991.98px) {
+            .masonry { column-count: 2; }
+        }
+        @media (max-width: 575.98px) {
+            .masonry { column-count: 1; }
+        }
+        .masonry-item {
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 1.2rem;
+            vertical-align: top;
+            break-inside: avoid;
+            animation: fadeinUp 0.9s cubic-bezier(.4,0,.2,1);
+        }
+        @keyframes fadeinUp {
+            from {opacity: 0; transform: translateY(40px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+        /* 卡片动画与美化（色彩由color-thief JS生成） */
+        .card {
+            border-radius: 22px;
+            border: 2px solid transparent;
+            box-shadow: 0 8px 32px 0 rgba(120,90,180,0.18), 0 2px 8px rgba(60,40,80,0.08);
+            transition:
+                transform 0.22s cubic-bezier(.4,0,.2,1),
+                box-shadow 0.22s,
+                border-color 0.18s,
+                background 0.4s;
+            cursor: pointer;
+            color: rgba(40,40,40,0.88);
+        }
+        .card:hover, .card.active {
+            transform: scale(1.05) translateY(-8px);
+            box-shadow: 0 18px 48px 0 rgba(100,60,180,0.32), 0 2px 8px rgba(60,40,80,0.18);
+        }
+        body.night-mode .card {
+            color: #eaeaea;
+        }
+        body.night-mode .card:hover, body.night-mode .card.active {
+            /* border-color由JS动态设置 */
+        }
+        .card-img-top {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 22px 22px 0 0;
+            transition: box-shadow 0.22s, filter 0.22s;
+            box-shadow: 0 2px 10px rgba(120,90,180,0.08);
+            opacity: 0;
+            filter: blur(16px);
+        }
+        .card-img-top.loaded {
+            opacity: 1;
+            filter: blur(0);
+            transition: filter 0.45s, opacity 0.45s;
+        }
+        .card-meta {
+            font-size: 0.96em;
+            color: #999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 0.4em;
+        }
+        .card-meta .meta-icon {
+            font-size: 1.04em;
+            vertical-align: middle;
+        }
+        .card-body {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 12px 10px 8px 10px;
+        }
+        .like-btn {
+            transition: background 0.22s, transform 0.18s;
+        }
+        .like-btn.liked {
+            animation: likePulse 0.42s cubic-bezier(.4,0,.2,1);
+            background: #ff6ecf !important;
+            color: #fff !important;
+            border: none;
+        }
+        @keyframes likePulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.23); }
+            100% { transform: scale(1);}
+        }
+        .btn-animated {
+            background: linear-gradient(90deg,#a678ff,#6ec6ff 80%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: 500;
+            box-shadow: 0 2px 10px rgba(120,90,180,0.10);
+            transition: background 0.32s cubic-bezier(.4,0,.2,1), transform 0.18s;
+        }
+        .btn-animated:hover {
+            background: linear-gradient(90deg,#6ec6ff,#a678ff 80%);
+            transform: scale(1.07) rotate(-2deg);
+        }
+        .theme-switch {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            background: #fff;
+            color: #444;
+            border-radius: 50%;
+            box-shadow: 0 2px 10px #0003;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            cursor: pointer;
+            transition: background 0.32s, color 0.32s;
+        }
+        .theme-switch:hover {
+            background: #a678ff;
+            color: #fff;
+        }
+        body.night-mode .theme-switch {
+            background: #23243a;
+            color: #44cfff;
+        }
+        .title-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-bottom: 0.7em;
+            position: relative;
+        }
+        .main-title {
+            font-size: 2.2em;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            background: none;
+            color: #a678ff;
+            margin: 0;
+            padding: 0;
+            z-index: 1;
+            text-shadow: none;
+        }
+        body.night-mode .main-title {
+            color: #44cfff;
+            text-shadow: 0 0 8px #23243a, 0 0 2px #343050;
+        }
+        .username-info {
+            font-size: 1.07em;
+            color: #8565c8;
+            margin-bottom: 1em;
+            transition: color 0.3s;
+        }
+        body.night-mode .username-info {
+            color: #7fd4ff;
+        }
+        .card-meta span {
+            transition: color 0.3s;
+        }
+        body.night-mode .card-meta span {
+            color: #98bfff;
+        }
+        /* ICP备案号样式 */
+        .footer-icp {
+            width: 100%;
+            text-align: center;
+            padding: 18px 0 12px 0;
+            font-size: 1.05em;
+            letter-spacing: 0.04em;
+            color: #a678ff;
+            background: linear-gradient(90deg, #f1f6fc 60%, #f9e8ff 100%);
+            border-top: 1.5px solid #e3d6fa;
+            margin-top: 48px;
+            font-weight: 600;
+            transition: background 0.4s, color 0.4s, border-color 0.4s;
+            box-shadow: 0 0 12px 0 rgba(166,120,255,0.08);
+        }
+        .footer-icp a {
+            color: inherit;
+            text-decoration: underline wavy #a678ff;
+            transition: color 0.3s, text-decoration-color 0.3s;
+        }
+        .footer-icp a:hover {
+            color: #6ec6ff;
+            text-decoration-color: #6ec6ff;
+        }
+        body.night-mode .footer-icp {
+            background: linear-gradient(90deg, #23243a 60%, #343050 100%);
+            color: #44cfff;
+            border-top: 1.5px solid #39395a;
+            box-shadow: 0 0 16px 0 rgba(68,207,255,0.13);
+        }
+        body.night-mode .footer-icp a {
+            color: #44cfff;
+            text-decoration-color: #44cfff;
+        }
+        body.night-mode .footer-icp a:hover {
+            color: #a678ff;
+            text-decoration-color: #a678ff;
+        }
+        @media (max-width: 767.98px) {
+            .card { margin-bottom: 1.5em;}
+            .title-row { flex-direction: column; gap: 8px;}
+            .main-title { font-size: 1.45em; }
+            .theme-switch { right: 14px; bottom: 14px; width: 44px; height: 44px; font-size: 1.28em;}
+            .masonry { column-count: 1 !important; }
+            .footer-icp { font-size: 0.99em; padding: 13px 0 8px 0; }
+        }
+        @media (max-width: 575.98px) {
+            .card { border-radius: 14px; }
+            .card-img-top { border-radius: 14px 14px 0 0;}
+            .masonry { column-count: 1 !important; }
+            .footer-icp { font-size: 0.93em; padding: 10px 0 6px 0; }
+        }
+    </style>
+</head>
+<body>
+<div id="particles-js"></div>
+<div id="admin-activator"></div>
+<div id="admin-panel">
+    {% if is_admin %}
+    <form method="get" action="/admin_logout" style="display:inline;">
+        <button type="submit" class="btn btn-warning btn-sm">退出管理员</button>
+    </form>
+    {% else %}
+    <form method="post" action="/admin_login" class="d-flex align-items-center mb-0" style="gap:6px;">
+        <input type="password" name="admin_password" placeholder="管理员密码" class="form-control form-control-sm" style="width:120px;">
+        <button type="submit" class="btn btn-sm btn-secondary">登录</button>
+    </form>
+    {% endif %}
+</div>
+<div class="theme-switch" id="theme-switch" title="切换夜间模式">
+    <i class="bi bi-moon-stars"></i>
+</div>
+<div class="container mt-4">
+    <div class="title-row">
+        <h2 class="main-title">摄影图片分享</h2>
+        <a href="/upload" class="btn btn-primary btn-animated" style="font-size:1.1em;">上传图片</a>
+    </div>
+    {% if username %}
+    <div class="username-info">你好, <b>{{ username }}</b>！</div>
+    {% else %}
+    <form method="post" action="/set_username" class="mb-2 d-flex flex-row align-items-center">
+        <input type="text" name="username" placeholder="设置您的用户名" class="form-control w-25 me-2" required>
+        <button type="submit" class="btn btn-sm btn-primary btn-animated">保存</button>
+    </form>
+    {% endif %}
+    {% set sorted_images = images|sort(attribute=4, reverse=True) %}
+    <div class="masonry" id="masonry-list">
+        {% for img in sorted_images %}
+        <div class="masonry-item">
+            <div class="card mb-2" id="card-{{ img[0] }}">
+                <a href="{{ url_for('image_detail', image_id=img[0]) }}">
+                    <img src="{{ url_for('static', filename='uploads/' + img[1]) }}" class="card-img-top" alt="图片" id="img-{{ img[0] }}">
+                </a>
+                <div class="card-body p-2">
+                    <div class="card-meta">
+                        <span class="meta-icon"><i class="bi bi-person-circle"></i></span>
+                        <span>{{ img[6] if img[6] else '匿名' }}</span>
+                        <span class="meta-icon"><i class="bi bi-clock"></i></span>
+                        <span>{{ img[4] }}</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="me-2"><i class="bi bi-heart"></i> 点赞数：<b id="like-count-{{ img[0] }}">{{ img[5] }}</b></span>
+                        <button class="btn btn-sm btn-outline-danger like-btn me-2" onclick="likeImage({{ img[0] }}, this)">点赞</button>
+                    </div>
+                    <div class="mt-auto">
+                        <a href="{{ url_for('download', filename=img[1]) }}" class="btn btn-sm btn-outline-success me-2">下载</a>
+                        {% if (img[2]==request.remote_addr and img[3]==request.cookies.get('device_id')) or is_admin %}
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteImage({{ img[0] }})">删除</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+<div id="random-note-popup"></div>
+<div class="waifu">
+    <div class="waifu-tips"></div>
+    <canvas id="live2d" class="live2d" width="280" height="250"></canvas>
+    <div class="waifu-tool">
+        <span class="fui-home"></span>
+        <span class="fui-chat"></span>
+        <span class="fui-eye"></span>
+        <span class="fui-user"></span>
+        <span class="fui-photo"></span>
+        <span class="fui-info-circle"></span>
+        <span class="fui-cross"></span>
+    </div>
+</div>
+
+<!-- 备案号美观现代化底部 -->
+<div class="footer-icp">
+    <span>
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" title="工信部网站备案查询">
+            青ICP备2025004487号-1
+        </a>
+        &nbsp;|&nbsp; <span style="font-weight: 400; font-size: 0.96em; color: #888; letter-spacing: 0.02em;">view.lxchen.cn</span>
+        <span class="icp-icon" style="margin-left:7px; vertical-align:-2px; color:#a678ff;">
+            <i class="bi bi-shield-check"></i>
+        </span>
+    </span>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/particles.js"></script>
+<script>
+// ...保持你原有的所有JS...
+particlesJS.load('particles-js', '/static/particles.json', function() {});
+</script>
+<script>
+const notes = [
+    "光影之间，定格岁月的温柔。",
+    "快门响起，是心灵的印记。",
+    "用镜头发现生活的诗意。",
+    "一张照片，一段故事。",
+    "让美好停留在画面中。",
+    "每一帧都是时间的礼物。",
+    "感受生活，定格感动。",
+    "照片，是记忆的守护者。",
+    "用色彩点亮平凡。",
+    "在光里，遇见温暖。"
+];
+const dotColors = [
+    "#0099FF", "#FF0066", "#22DD88", "#FFB100", "#7F00FF", "#00EAFF", "#FF8C00", "#FF69B4", "#0CE3AC", "#FF2F2F"
+];
+const colors = dotColors;
+const notePopup = document.getElementById('random-note-popup');
+let lastIdx = -1;
+document.body.addEventListener('click', function(e){
+    if(e.target===document.body) {
+        let idx;
+        do { idx = Math.floor(Math.random()*notes.length); } while (idx==lastIdx);
+        lastIdx = idx;
+        notePopup.innerText = notes[idx];
+        notePopup.style.background = colors[Math.floor(Math.random()*colors.length)];
+        notePopup.style.color = "#fff";
+        notePopup.style.display = "block";
+        let x = Math.min(e.clientX+12, window.innerWidth-220);
+        let y = Math.min(e.clientY-18, window.innerHeight-60);
+        notePopup.style.left = x+'px';
+        notePopup.style.top = y+'px';
+        setTimeout(()=>{ notePopup.style.display = "none"; }, 3500);
+    }
+});
+function likeImage(image_id, btn) {
+    fetch('/like/' + image_id, {method: "POST"}).then(response => response.json())
+    .then(data => {
+        if(data.success){
+            let countElem = document.getElementById('like-count-' + image_id);
+            countElem.innerText = parseInt(countElem.innerText) + 1;
+            btn.classList.add('liked');
+            setTimeout(()=>btn.classList.remove('liked'),420);
+        }
+    });
+}
+function removeModalBackdrop() {
+    document.querySelectorAll('.modal-backdrop').forEach(e => e.remove());
+}
+function deleteImage(image_id) {
+    if(confirm('确定要删除该图片吗？')) {
+        fetch('/delete/' + image_id, {method: "POST"})
+        .then(response => response.json().then(data => ({status: response.status, body: data})))
+        .then(({status, body}) => {
+            if(body.success){
+                alert("图片已删除，页面即将刷新！");
+                setTimeout(() => { location.href = '/'; }, 1500);
+            }else{
+                alert(body.message || "删除失败，您没有权限！");
+                removeModalBackdrop();
+            }
+        })
+        .catch(err => {
+            alert("请求失败：" + err);
+            removeModalBackdrop();
+        });
+    }
+}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll('.card-img-top').forEach(function(img) {
+        if(img.complete && img.naturalWidth !== 0){
+            img.classList.add('loaded');
+        }else{
+            img.addEventListener('load', function(){
+                img.classList.add('loaded');
+            });
+        }
+    });
+    document.querySelectorAll('.card').forEach(function(card){
+        card.addEventListener('click', function(){
+            document.querySelectorAll('.card.active').forEach(c=>c.classList.remove('active'));
+            card.classList.add('active');
+            setTimeout(()=>card.classList.remove('active'),800);
+        });
+    });
+    var adminActivator = document.getElementById('admin-activator');
+    var adminPanel = document.getElementById('admin-panel');
+    var showTimeout, hideTimeout;
+    adminActivator.addEventListener('mouseenter', function() {
+        clearTimeout(hideTimeout);
+        showTimeout = setTimeout(function() {
+            adminPanel.classList.add('show');
+        }, 120);
+    });
+    adminActivator.addEventListener('mouseleave', function() {
+        hideTimeout = setTimeout(function() {
+            adminPanel.classList.remove('show');
+        }, 320);
+    });
+    adminPanel.addEventListener('mouseenter', function() {
+        clearTimeout(hideTimeout);
+        adminPanel.classList.add('show');
+    });
+    adminPanel.addEventListener('mouseleave', function() {
+        hideTimeout = setTimeout(function() {
+            adminPanel.classList.remove('show');
+        }, 320);
+    });
+    // 夜间模式
+    let themeSwitch = document.getElementById('theme-switch');
+    themeSwitch.addEventListener('click', function(){
+        document.body.classList.toggle('night-mode');
+        localStorage.setItem('themeNightMode', document.body.classList.contains('night-mode') ? '1' : '0');
+        themeSwitch.innerHTML = document.body.classList.contains('night-mode')
+            ? '<i class="bi bi-brightness-high"></i>'
+            : '<i class="bi bi-moon-stars"></i>';
+    });
+    if(localStorage.getItem('themeNightMode')==='1'){
+        document.body.classList.add('night-mode');
+        themeSwitch.innerHTML = '<i class="bi bi-brightness-high"></i>';
+    }
+});
+</script>
+<!-- color-thief 主色调分析器 + 卡片色调优化和hover边框色 -->
+<script src="https://cdn.jsdelivr.net/npm/colorthief@2.3.2/dist/color-thief.umd.js"></script>
+<script>
+function rgbToHsl(r, g, b){
+    r /= 255; g /= 255; b /= 255;
+    let max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if(max == min){
+        h = s = 0;
+    }else{
+        let d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch(max){
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return [h*360, s, l];
+}
+function getNiceHSLFromRGB(rgb) {
+    let hsl = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+    let h = hsl[0], s = hsl[1], l = hsl[2];
+    // 棕黄区间过滤为蓝紫/青粉
+    if ((h >= 20 && h <= 55) || l < 0.45) {
+        // 选一个蓝紫区间 210-270 或青粉区间 160-200
+        h = [220,240,260,200,180,160][Math.floor(Math.random()*6)];
+        s = 0.82 + Math.random()*0.12;
+        l = 0.72 + Math.random()*0.12;
+    } else {
+        // 增强饱和度和亮度
+        s = Math.max(s, 0.78);
+        l = Math.max(l, 0.68);
+    }
+    return [h,s,l];
+}
+document.addEventListener("DOMContentLoaded", function() {
+    const colorThief = new ColorThief();
+    document.querySelectorAll('.card-img-top').forEach(function(img) {
+        img.crossOrigin = "anonymous";
+        img.addEventListener('load', function() {
+            try {
+                if (img.complete && img.naturalWidth !== 0) {
+                    const color = colorThief.getColor(img);
+                    let [h,s,l] = getNiceHSLFromRGB(color);
+                    let hslStr = `hsla(${h.toFixed(0)},${(s*100).toFixed(0)}%,${(l*100).toFixed(0)}%,0.66)`;
+                    let borderStr = `hsl(${h.toFixed(0)},${(s*100).toFixed(0)}%,${Math.min((l*100)+10,95).toFixed(0)}%)`;
+                    const card = img.closest('.card');
+                    card.style.background = hslStr;
+                    card.setAttribute('data-border-color', borderStr);
+                    card.style.boxShadow = `0 4px 16px hsla(${h.toFixed(0)},${(s*100).toFixed(0)}%,${(l*100).toFixed(0)}%,0.18)`;
+                    card.style.color = "rgba(40,40,40,0.88)";
+                    // 动态hover边框
+                    card.addEventListener('mouseenter', function() {
+                        card.style.borderColor = borderStr;
+                    });
+                    card.addEventListener('mouseleave', function() {
+                        card.style.borderColor = "transparent";
+                    });
+                }
+            } catch(e) {
+                let card = img.closest('.card');
+                card.style.background = "#fafafa";
+                card.setAttribute('data-border-color', '#a678ff');
+                card.addEventListener('mouseenter', function() {
+                    card.style.borderColor = "#a678ff";
+                });
+                card.addEventListener('mouseleave', function() {
+                    card.style.borderColor = "transparent";
+                });
+            }
+        });
+        if (img.complete && img.naturalWidth !== 0) {
+            img.dispatchEvent(new Event('load'));
+        }
+    });
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery-ui-dist@1.13.2/jquery-ui.min.js"></script>
+<script src="/static/live2d/assets/waifu-tips.js"></script>
+<script src="/static/live2d/assets/live2d.js"></script>
+<script>
+    live2d_settings['modelId'] = 0;
+    live2d_settings['modelTexturesId'] = 0;
+    live2d_settings['waifuDraggable'] = 'true';
+    live2d_settings['canSwitchModel'] = 'true';
+    live2d_settings['canSwitchTextures'] = 'true';
+    live2d_settings['canCloseLive2d'] = 'true';
+    initModel("/static/live2d/assets/waifu-tips.json");
+</script>
+</body>
+</html>
