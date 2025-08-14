@@ -94,6 +94,8 @@ if __name__ == '__main__':
 
 ## 快速开始
 
+## 新手建议使用宝塔面板，并询问Copilot，注意修改app.py中的密码与字符串！
+
 1. **克隆仓库**
    ```bash
    git clone https://github.com/ChenLX233/ImageShowcaseWebsite-SuitableForGraduationProjects.git
@@ -110,9 +112,7 @@ if __name__ == '__main__':
      ```bash
      python app.py
      ```
-
-## 新手建议使用宝塔面板，并询问Copilot
-
+     
 ---
 
 ## 适用场景
