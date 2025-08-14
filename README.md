@@ -99,7 +99,7 @@ if __name__ == '__main__':
    git clone https://github.com/ChenLX233/ImageShowcaseWebsite-SuitableForGraduationProjects.git
    ```
 
-2. **安装依赖（如有 Python 后端）**
+2. **安装依赖**
    ```bash
    pip install flask
    ```
@@ -110,6 +110,8 @@ if __name__ == '__main__':
      ```bash
      python app.py
      ```
+
+## 新手建议使用宝塔面板，并询问Copilot
 
 ---
 
