@@ -7,11 +7,11 @@ from datetime import datetime, timedelta
 
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-ADMIN_PASSWORD = '1145141919810'  # 请改为自己的管理员密码
+ADMIN_PASSWORD = '114514'  # 请改为自己的管理员密码
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['SECRET_KEY'] = 'nI3uD0dI2nG8fA4cY6iI0eE0lU2iF8iC1yD2jA9bG8nM7mM7uB7rP6iD8bO8kQ0pO7jP8eS5yD8kI2aA1gB7bF2mO5yO5vK3nM4aC5fU0sZ9iL4dL1oI5aK3hQ8rY1mT'  # 请改为自己的随机字符串
+app.config['SECRET_KEY'] = '传奇2h2g宕机王-io读写红漫天'  # 请改为自己的随机字符串
 app.config['MAX_CONTENT_LENGTH'] = 12 * 1024 * 1024  # 12MB图片大小限制
 
 # ------------------ 数据库初始化 ------------------
